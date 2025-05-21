@@ -1,0 +1,47 @@
+# Versão da sintaxe do Docker Compose que vamos usar (3.9 é estável e moderna)
+version: '3.9'
+
+# Aqui a gente começa a definir os serviços que vão rodar nos containers
+services:
+  # Serviço principal: nosso app Django
+  djangoapp:
+    # Nome do container (você vai ver esse nome no `docker ps`)
+    container_name: djangoapp
+
+    # Define que vamos construir a imagem a partir do Dockerfile local
+    build:
+      context: .  # Diretório onde tá o Dockerfile (nesse caso, a raiz do projeto)
+
+    # Faz um mapeamento de portas -> expõe a porta 8000 do container pra 8000 no seu PC
+    ports:
+      - 8000:8000
+
+    # Volumes servem pra compartilhar arquivos entre seu PC e o container em tempo real
+    volumes:
+      - ./djangoapp:/djangoapp  # Código do projeto Django (live reload e tals)
+      - ./data/web/static:/data/web/static/  # Arquivos estáticos
+      - ./data/web/media:/data/web/media/    # Arquivos enviados pelo usuário (uploads etc)
+
+    # Arquivo com variáveis de ambiente (.env) que o container vai usar
+    env_file:
+      - ./dotenv_files/.env
+
+    # Esse serviço só vai subir depois que o `psql` tiver pronto
+    depends_on:
+      - psql
+
+  # Serviço do banco de dados PostgreSQL
+  psql:
+    # Nome do container de banco
+    container_name: psql
+
+    # Imagem oficial e levinha do PostgreSQL
+    image: postgres:14-alpine
+
+    # Volume para persistência dos dados do banco
+    volumes:
+      - ./data/postgres/data:/var/lib/postgresql/data/
+
+    # Usa o mesmo .env (onde provavelmente tá o POSTGRES_USER, POSTGRES_PASSWORD etc)
+    env_file:
+      - ./dotenv_files/.env
